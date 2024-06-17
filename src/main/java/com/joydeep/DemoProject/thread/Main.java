@@ -1,13 +1,13 @@
 package com.joydeep.DemoProject.thread;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.stream.Stream;
 
 public class Main {
 
@@ -69,20 +69,26 @@ public class Main {
     public static class TaskExecutorClass implements TaskExecutor {
         ExecutorService executorService = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors() - 1);
 
-        synchronized <T> Future<T> executeTask(Task<T> task) throws InterruptedException {
+        <T> Future<T> executeTask(Task<T> task) throws InterruptedException {
             System.out.println("Current Tread : " + Thread.currentThread());
             return submitTask(task);
         }
 
         @Override
         public <T> Future<T> submitTask(Task<T> task) throws InterruptedException {
-            Thread.sleep(2000);
-            Future<T> submit = (Future<T>) executorService.submit(() -> System.out.println("From submitTask & task is : " + task));
+            Thread.sleep(100);
+            Future<T> submit = (Future<T>) executorService.submit(()
+                    -> System.out.println("From submitTask & task is : " + task));
             return submit;
         }
     }
 
-    public static void main(String[] args) throws InterruptedException {
+    /**
+     * Main method.
+     *
+     * @param args
+     */
+    public static void main(String[] args) {
         TaskExecutorClass taskExecutorClass = new TaskExecutorClass();
 
         UUID uuid1 = getRandomUUID();
@@ -98,7 +104,8 @@ public class Main {
         Task task4 = new Task<>(uuid4, new TaskGroup(uuid4), TaskType.valueOf(TaskType.WRITE.name()), getCallableTask(TaskType.WRITE.name()));
 
         List<Future> futures = new ArrayList<>();
-        Arrays.asList(task1, task2, task3, task4).forEach(task -> {
+
+        Stream.of(task1, task2, task3, task4).forEach(task -> {
             try {
                 futures.add(taskExecutorClass.executeTask(task));
             } catch (InterruptedException e) {
@@ -110,10 +117,21 @@ public class Main {
         taskExecutorClass.executorService.shutdown();
     }
 
+    /**
+     * getRandomUUID for UUID generation.
+     *
+     * @return
+     */
     private static UUID getRandomUUID() {
         return UUID.randomUUID();
     }
 
+    /**
+     * getCallableTask to make callable type for the thread execution.
+     *
+     * @param task
+     * @return
+     */
     private static Callable<String> getCallableTask(String task) {
         return () -> task;
     }
